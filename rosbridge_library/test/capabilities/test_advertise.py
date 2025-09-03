@@ -7,6 +7,7 @@ from threading import Thread
 import rclpy
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
+
 from rosbridge_library.capabilities.advertise import Advertise
 from rosbridge_library.internal import ros_loader
 from rosbridge_library.internal.exceptions import (
@@ -162,9 +163,9 @@ class TestAdvertise(unittest.TestCase):
         proto = Protocol("hello", self.node)
         adv = Advertise(proto)
         topic = "/test_do_advertise"
-        type = "std_msgs/String"
+        type_name = "std_msgs/String"
 
-        msg = {"op": "advertise", "topic": topic, "type": type}
+        msg = {"op": "advertise", "topic": topic, "type": type_name}
         adv.advertise(loads(dumps(msg)))
         self.assertTrue(is_topic_published(self.node, topic))
         adv.unadvertise(loads(dumps(msg)))

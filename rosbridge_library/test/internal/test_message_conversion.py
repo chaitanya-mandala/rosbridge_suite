@@ -5,14 +5,18 @@ from json import dumps, loads
 
 import numpy as np
 from rclpy.serialization import deserialize_message, serialize_message
+
 from rosbridge_library.internal import message_conversion as c
 from rosbridge_library.internal import ros_loader
 
 
 class TestMessageConversion(unittest.TestCase):
     def validate_instance(self, inst1):
-        """Serializes and deserializes the inst to typecheck and ensure that
-        instances are correct"""
+        """
+        Validate that the instance is correct by serializing and deserializing it.
+
+        Serializes and deserializes the inst to typecheck and ensure that instances are correct.
+        """
         inst2 = deserialize_message(serialize_message(inst1), type(inst1))
         self.assertEqual(inst1, inst2)
 
@@ -73,14 +77,14 @@ class TestMessageConversion(unittest.TestCase):
                 self.assertEqual(c._to_primitive_inst(msg, rostype, rostype, []), msg)
                 self.assertEqual(c._to_inst(msg, rostype, rostype), msg)
         # Test raw primitives
-        for msg in range(0, 200):
+        for msg in range(200):
             for rostype in ["uint8", "uint16", "uint32", "uint64"]:
                 self.assertEqual(c._to_primitive_inst(msg, rostype, rostype, []), msg)
                 self.assertEqual(c._to_inst(msg, rostype, rostype), msg)
 
     def test_byte_primitives(self):
         # Test raw primitives
-        for msg in range(0, 200):
+        for msg in range(200):
             for rostype in ["octet"]:
                 self.assertEqual(c._to_primitive_inst(msg, rostype, rostype, []), bytes([msg]))
                 self.assertEqual(c._to_inst(msg, rostype, rostype), bytes([msg]))
@@ -134,7 +138,7 @@ class TestMessageConversion(unittest.TestCase):
             self.assertRaises(Exception, self.do_primitive_test, int64, "std_msgs/Int32")
 
     def test_unsigned_int_base_msgs(self):
-        int8s = range(0, 256)
+        int8s = range(256)
         for int8 in int8s:
             self.do_primitive_test(int8, "std_msgs/Char")
             self.do_primitive_test(int8, "std_msgs/UInt8")
@@ -172,7 +176,7 @@ class TestMessageConversion(unittest.TestCase):
             self.assertRaises(Exception, self.do_primitive_test, int64, "std_msgs/UInt32")
 
     def test_byte_base_msg(self):
-        int8s = range(0, 256)
+        int8s = range(256)
         for int8 in int8s:
             self.do_byte_test(int8, "std_msgs/Byte")
 
@@ -261,7 +265,7 @@ class TestMessageConversion(unittest.TestCase):
             rostype = "rosbridge_test_msgs/" + msgtype
 
             # From List[int]
-            int8s = list(range(0, 256))
+            int8s = list(range(256))
             ret = test_int8_msg(rostype, int8s)
             np.testing.assert_array_equal(ret, np.array(int8s))
 
@@ -274,7 +278,7 @@ class TestMessageConversion(unittest.TestCase):
             rostype = "rosbridge_test_msgs/" + msgtype
 
             # From List[int]
-            int8s = list(range(0, 16))
+            int8s = list(range(16))
             ret = test_int8_msg(rostype, int8s)
             np.testing.assert_array_equal(ret, np.array(int8s))
 
@@ -295,12 +299,12 @@ class TestMessageConversion(unittest.TestCase):
             rostype = "rosbridge_test_msgs/" + msgtype
 
             # From List[float]
-            floats = list(map(float, range(0, 256)))
+            floats = list(map(float, range(256)))
             ret = test_float32_msg(rostype, floats)
             np.testing.assert_array_equal(ret, np.array(floats))
 
             # From List[int]
-            ints = list(map(int, range(0, 256)))
+            ints = list(map(int, range(256)))
             ret = test_float32_msg(rostype, ints)
             np.testing.assert_array_equal(ret, np.array(ints))
 
@@ -308,12 +312,12 @@ class TestMessageConversion(unittest.TestCase):
             rostype = "rosbridge_test_msgs/" + msgtype
 
             # From List[float]
-            floats = list(map(float, range(0, 16)))
+            floats = list(map(float, range(16)))
             ret = test_float32_msg(rostype, floats)
             np.testing.assert_array_equal(ret, np.array(floats))
 
             # From List[int]
-            ints = list(map(int, range(0, 16)))
+            ints = list(map(int, range(16)))
             ret = test_float32_msg(rostype, ints)
             np.testing.assert_array_equal(ret, np.array(ints))
 
@@ -330,7 +334,7 @@ class TestMessageConversion(unittest.TestCase):
             rostype = "rosbridge_test_msgs/" + msgtype
 
             # From List[float]
-            floats = list(map(float, range(0, 16)))
+            floats = list(map(float, range(16)))
             ret = test_nestedboundedarray_msg(rostype, floats)
 
             self.assertEqual(c._from_inst(ret, rostype), {"data": floats})

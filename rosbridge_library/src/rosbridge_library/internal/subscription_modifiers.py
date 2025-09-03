@@ -73,12 +73,11 @@ class MessageHandler:
         self.publish(msg)
 
     def transition(self):
-        if self.throttle_rate == 0 and self.queue_length == 0:
-            return self
-        elif self.queue_length == 0:
-            return ThrottleMessageHandler(self)
-        else:
+        if self.queue_length > 0:
             return QueueMessageHandler(self)
+        if self.throttle_rate > 0:
+            return ThrottleMessageHandler(self)
+        return self
 
     def finish(self, block=True):
         pass
@@ -90,12 +89,11 @@ class ThrottleMessageHandler(MessageHandler):
             MessageHandler.handle_message(self, msg)
 
     def transition(self):
-        if self.throttle_rate == 0 and self.queue_length == 0:
-            return MessageHandler(self)
-        elif self.queue_length == 0:
-            return self
-        else:
+        if self.queue_length > 0:
             return QueueMessageHandler(self)
+        if self.throttle_rate > 0:
+            return self
+        return MessageHandler(self)
 
     def finish(self, block=True):
         pass
@@ -121,23 +119,27 @@ class QueueMessageHandler(MessageHandler, Thread):
                 self.c.notify()
 
     def transition(self):
-        if self.throttle_rate == 0 and self.queue_length == 0:
-            self.finish()
-            return MessageHandler(self)
-        elif self.queue_length == 0:
-            self.finish()
-            return ThrottleMessageHandler(self)
-        else:
+        if self.queue_length > 0:
             with self.c:
                 old_queue = self.queue
                 self.queue = deque(maxlen=self.queue_length)
                 while len(old_queue) > 0:
                     self.queue.append(old_queue.popleft())
                 self.c.notify()
-            return self
+                return self
+        self.finish()
+        if self.throttle_rate > 0:
+            return ThrottleMessageHandler(self)
+        return MessageHandler(self)
 
     def finish(self, block=True):
-        """If throttle was set to 0, this pushes all buffered messages"""
+        """
+        Notify the thread to finish, and optionally wait for it to finish.
+
+        If throttle was set to 0, this pushes all buffered messages.
+
+        :param block: If True, wait for the thread to finish before returning
+        """
         # Notify the thread to finish
         with self.c:
             self.alive = False
@@ -165,5 +167,5 @@ class QueueMessageHandler(MessageHandler, Thread):
             try:
                 msg = self.queue.popleft()
                 MessageHandler.handle_message(self, msg)
-            except Exception:
+            except Exception:  # noqa: PERF203
                 traceback.print_exc(file=sys.stderr)

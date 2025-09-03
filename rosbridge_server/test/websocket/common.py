@@ -1,6 +1,7 @@
 import functools
 import json
-from typing import TYPE_CHECKING, Any, Awaitable, Callable
+from collections.abc import Awaitable
+from typing import TYPE_CHECKING, Any, Callable
 
 import launch
 import launch_ros
@@ -20,9 +21,7 @@ if TYPE_CHECKING:
 
 
 class TestClientProtocol(WebSocketClientProtocol):
-    """
-    Set message_handler to handle messages received from the server.
-    """
+    """Set message_handler to handle messages received from the server."""
 
     message_handler: Callable[[Any], None]
 
@@ -67,7 +66,9 @@ try:
 
     def generate_test_description() -> LaunchDescription:
         """
-        Generate a launch description that runs the websocket server. Re-export this from a test file and use add_launch_test() to run the test.
+        Generate a launch description that runs the websocket server.
+
+        Re-export this from a test file and use add_launch_test() to run the test.
         """
         return LaunchDescription([_generate_node(), ReadyToTest()])
 
@@ -75,21 +76,22 @@ except ImportError:
 
     def generate_test_description(ready_fn) -> LaunchDescription:  # type: ignore[misc]
         """
-        Generate a launch description that runs the websocket server. Re-export this from a test file and use add_launch_test() to run the test.
+        Generate a launch description that runs the websocket server.
+
+        Re-export this from a test file and use add_launch_test() to run the test.
         """
         return LaunchDescription(
-            [_generate_node(), launch.actions.OpaqueFunction(function=lambda context: ready_fn())]
+            [_generate_node(), launch.actions.OpaqueFunction(function=lambda _context: ready_fn())]
         )
 
 
 async def get_server_port(node: Node) -> int:
-    """
-    Returns the port which the WebSocket server is running on
-    """
+    """Return the port which the WebSocket server is running on."""
     client: Client = node.create_client(GetParameters, "/rosbridge_websocket/get_parameters")
     try:
         if not client.wait_for_service(5):
-            raise RuntimeError("GetParameters service not available")
+            msg = "GetParameters service not available"
+            raise RuntimeError(msg)
         port_param = await client.call_async(GetParameters.Request(names=["actual_port"]))
         assert port_param is not None
         return port_param.values[0].integer_value
@@ -147,6 +149,8 @@ def run_websocket_test(
 
 def sleep(node: Node, duration: float) -> Awaitable[None]:
     """
+    Sleep for a given duration in seconds.
+
     Async-compatible delay function based on a ROS timer.
     """
     future: Future = Future()
@@ -162,7 +166,8 @@ def sleep(node: Node, duration: float) -> Awaitable[None]:
 
 def websocket_test(test_fn):
     """
-    Decorator for tests which use a ROS node and WebSocket server and client.
+    Decorate tests which use a ROS node and WebSocket server and client.
+
     Multiple tests per file are not supported because the Twisted reactor cannot be run multiple times.
     """
 
@@ -175,6 +180,8 @@ def websocket_test(test_fn):
 
 def expect_messages(count: int, description: str, logger):
     """
+    Expect a specific number of messages.
+
     Convenience function to create a Future and a message handler function which gathers results
     into a list and waits for the list to have the expected number of items.
     """
@@ -182,14 +189,13 @@ def expect_messages(count: int, description: str, logger):
     results = []
 
     def handler(msg):
-        logger.info(f"Received message on {description}: {msg}")
+        logger.info(f"Received message on {description}: {msg}")  # noqa: G004
         results.append(msg)
         if len(results) == count:
-            logger.info(f"Received all messages on {description}")
+            logger.info(f"Received all messages on {description}")  # noqa: G004
             future.set_result(results)
         elif len(results) > count:
-            raise AssertionError(
-                f"Received {len(results)} messages on {description} but expected {count}"
-            )
+            msg = f"Received {len(results)} messages on {description} but expected {count}"
+            raise AssertionError(msg)
 
     return future, handler

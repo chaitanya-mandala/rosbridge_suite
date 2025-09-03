@@ -5,15 +5,13 @@ from rosbridge_library.capability import Capability
 
 
 class ReceivedFragments:
-    """
-    Singleton class to hold lists of received fragments in one 'global' object
-    """
+    """Singleton class to hold lists of received fragments in one 'global' object."""
 
     class __impl:
-        """Implementation of the singleton interface"""
+        """Implementation of the singleton interface."""
 
         def spam(self):
-            """Test method, return singleton id"""
+            """Test method, return singleton id."""
             return id(self)
 
     __instance = None
@@ -30,10 +28,10 @@ class ReceivedFragments:
     #     }
     # },
     # ...
-    lists: dict[str, dict] = {}
+    lists: dict[str, dict]
 
     def __init__(self):
-        """Create singleton instance"""
+        """Create singleton instance."""
         if ReceivedFragments.__instance is None:
             ReceivedFragments.__instance = ReceivedFragments.__impl()
             self.lists = {}
@@ -41,19 +39,17 @@ class ReceivedFragments:
         self.__dict__["_ReceivedFragments__instance"] = ReceivedFragments.__instance
 
     def __getattr__(self, attr):
-        """Delegate access to implementation"""
+        """Delegate access to implementation."""
         return getattr(self.__instance, attr)
 
     def __setattr__(self, attr, value):
-        """Delegate access to implementation"""
+        """Delegate access to implementation."""
         return setattr(self.__instance, attr, value)
 
 
 class Defragment(Capability, threading.Thread):
-
     fragment_timeout = 600
     opcode = "fragment"
-    global received_fragments
 
     protocol = None
 
@@ -73,31 +69,36 @@ class Defragment(Capability, threading.Thread):
 
     # defragment() does:
     #   1) take any incoming message with op-code "fragment"
-    #   2) check all existing fragment lists for time out                       # could be done by a thread but should be okay this way:
-    #   2.a) remove timed out lists (only if new fragment is not for this list) #   - checking whenever a new fragment is received should suffice
-    #   3) create a new fragment list for new message ids                       #     to have control over growth of fragment lists
+    #   2) check all existing fragment lists for time out
+    #       (could be done by a thread but should be okay this way)
+    #   2.a) remove timed out lists (only if new fragment is not for this list)
+    #       (checking whenever a new fragment is received should suffice)
+    #   3) create a new fragment list for new message ids
+    #       (to have control over growth of fragment lists)
     #   3.a) check message fields
     #   3.b) append the new fragment to 'the' list
     #   3.c) add time stamp (last_fragment_appended) to 'this' list
     #   4) check if the list of current fragment (message id) is complete
     #   4.a) reconstruct the original message by concatenating the fragments
-    #   4.b) pass the reconstructed message string to protocol.incoming()       # protocol.incoming is checking message fields by itself, so no need to do this before passing the reconstructed message to protocol
+    #   4.b) pass the reconstructed message string to protocol.incoming()
+    #       (protocol.incoming is checking message fields by itself, so no need to do this before
+    #       passing the reconstructed message to protocol)
     #   4.c) remove the fragment list to free up memory
     def defragment(self, message):
         now = time.monotonic()
 
         if self.received_fragments is not None:
-            for id in self.received_fragments.keys():
-                time_diff = now - self.received_fragments[id]["timestamp_last_append"]
+            for frag_id in self.received_fragments:
+                time_diff = now - self.received_fragments[frag_id]["timestamp_last_append"]
                 if (
                     time_diff > self.fragment_timeout
-                    and not self.received_fragments[id]["is_reconstructing"]
+                    and not self.received_fragments[frag_id]["is_reconstructing"]
                 ):
-                    log_msg = ["fragment list ", str(id), " timed out.."]
+                    log_msg = ["fragment list ", str(frag_id), " timed out.."]
 
-                    if message["id"] != id:
+                    if message["id"] != frag_id:
                         log_msg.append(" -> removing it..")
-                        del self.received_fragments[id]
+                        del self.received_fragments[frag_id]
                     else:
                         log_msg.extend([" -> but we're just about to add fragment #"])
                         log_msg.extend([str(message.get("num")), " of "])
@@ -120,7 +121,7 @@ class Defragment(Capability, threading.Thread):
         self.protocol.log("debug", log_msg)
 
         # Create fragment container if none exists yet
-        if msg_id not in self.received_fragments.keys():
+        if msg_id not in self.received_fragments:
             self.received_fragments[msg_id] = {
                 "is_reconstructing": False,
                 "total": message["total"],
@@ -134,7 +135,7 @@ class Defragment(Capability, threading.Thread):
 
         # Add fragment to fragment container's list if not already in list
         if (
-            (msg_num not in self.received_fragments[msg_id]["fragment_list"].keys())
+            msg_num not in self.received_fragments[msg_id]["fragment_list"]
             and msg_num <= self.received_fragments[msg_id]["total"]
             and msg_total == self.received_fragments[msg_id]["total"]
         ):
@@ -167,7 +168,7 @@ class Defragment(Capability, threading.Thread):
             self.protocol.log("debug", log_msg)
             # Check each fragment matches up
             received_all_fragments = True
-            for i in range(0, announced_total):
+            for i in range(announced_total):
                 if i not in self.received_fragments[msg_id]["fragment_list"]:
                     received_all_fragments = False
                     log_msg = "fragment #" + str(i)

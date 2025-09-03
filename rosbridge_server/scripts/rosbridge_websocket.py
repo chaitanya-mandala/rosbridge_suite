@@ -38,18 +38,18 @@ import time
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
-from rosbridge_library.capabilities.advertise import Advertise
-from rosbridge_library.capabilities.advertise_service import AdvertiseService
-from rosbridge_library.capabilities.call_service import CallService
-from rosbridge_library.capabilities.publish import Publish
-from rosbridge_library.capabilities.subscribe import Subscribe
-from rosbridge_library.capabilities.unadvertise_service import UnadvertiseService
 from std_msgs.msg import Int32
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop, PeriodicCallback
 from tornado.netutil import bind_sockets
 from tornado.web import Application
 
+from rosbridge_library.capabilities.advertise import Advertise
+from rosbridge_library.capabilities.advertise_service import AdvertiseService
+from rosbridge_library.capabilities.call_service import CallService
+from rosbridge_library.capabilities.publish import Publish
+from rosbridge_library.capabilities.subscribe import Subscribe
+from rosbridge_library.capabilities.unadvertise_service import UnadvertiseService
 from rosbridge_server import ClientManager, RosbridgeWebSocket
 
 
@@ -165,9 +165,9 @@ class RosbridgeWebsocketNode(Node):
                 self.declare_parameter("actual_port", actual_port)
                 self.get_logger().info(f"Rosbridge WebSocket server started on port {actual_port}")
                 connected = True
-            except OSError as e:
-                self.get_logger().warn(
-                    "Unable to start server: {} " "Retrying in {}s.".format(e, retry_startup_delay)
+            except OSError as e:  # noqa: PERF203
+                self.get_logger().warning(
+                    f"Unable to start server: {e} Retrying in {retry_startup_delay}s."
                 )
                 time.sleep(retry_startup_delay)
 
@@ -343,9 +343,10 @@ def main(args=None):
     executor.add_node(node)
 
     def spin_ros():
-        executor.spin_once(timeout_sec=0.01)
         if not rclpy.ok():
             shutdown_hook()
+            return
+        executor.spin_once(timeout_sec=0.01)
 
     spin_callback = PeriodicCallback(spin_ros, 1)
     spin_callback.start()
@@ -356,6 +357,7 @@ def main(args=None):
     except KeyboardInterrupt:
         print("Exiting due to SIGINT")
     finally:
+        spin_callback.stop()
         shutdown_hook()  # shutdown hook to stop the server
 
 

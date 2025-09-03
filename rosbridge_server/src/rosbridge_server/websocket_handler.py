@@ -37,11 +37,12 @@ import uuid
 from collections import deque
 from functools import partial, wraps
 
-from rosbridge_library.rosbridge_protocol import RosbridgeProtocol
-from rosbridge_library.util import bson
 from tornado.ioloop import IOLoop
 from tornado.iostream import StreamClosedError
 from tornado.websocket import WebSocketClosedError, WebSocketHandler
+
+from rosbridge_library.rosbridge_protocol import RosbridgeProtocol
+from rosbridge_library.util import bson
 
 _io_loop = IOLoop.instance()
 
@@ -53,7 +54,7 @@ def _log_exception():
 
 
 def log_exceptions(f):
-    """Decorator for logging exceptions to ROS."""
+    """Log exceptions to ROS."""
 
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -67,7 +68,8 @@ def log_exceptions(f):
 
 
 class IncomingQueue(threading.Thread):
-    """Decouples incoming messages from the Tornado thread.
+    """
+    Decouples incoming messages from the Tornado thread.
 
     This mitigates cases where outgoing messages are blocked by incoming,
     and vice versa.
@@ -174,9 +176,7 @@ class RosbridgeWebSocket(WebSocketHandler):
         self.incoming_queue.finish()
 
     def send_message(self, message, compression="none"):
-        if isinstance(message, bson.BSON):
-            binary = True
-        elif compression in ["cbor", "cbor-raw"]:
+        if isinstance(message, bson.BSON) or compression in ["cbor", "cbor-raw"]:
             binary = True
         else:
             binary = False
@@ -188,13 +188,13 @@ class RosbridgeWebSocket(WebSocketHandler):
         try:
             await self.write_message(message, binary)
         except WebSocketClosedError:
-            cls.node_handle.get_logger().warn(
+            cls.node_handle.get_logger().warning(
                 "WebSocketClosedError: Tried to write to a closed websocket",
                 throttle_duration_sec=1.0,
             )
             # If we end up here, a client has disconnected before its message callback(s) could be removed.
         except StreamClosedError:
-            cls.node_handle.get_logger().warn(
+            cls.node_handle.get_logger().warning(
                 "StreamClosedError: Tried to write to a closed stream",
                 throttle_duration_sec=1.0,
             )
@@ -202,7 +202,7 @@ class RosbridgeWebSocket(WebSocketHandler):
             _log_exception()
 
     @log_exceptions
-    def check_origin(self, origin):
+    def check_origin(self, origin):  # noqa: ARG002
         return True
 
     @log_exceptions

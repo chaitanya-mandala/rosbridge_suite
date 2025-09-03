@@ -8,13 +8,14 @@ import rclpy
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
+from std_msgs.msg import String
+
 from rosbridge_library.capabilities import subscribe
 from rosbridge_library.internal.exceptions import (
     InvalidArgumentException,
     MissingArgumentException,
 )
 from rosbridge_library.protocol import Protocol
-from std_msgs.msg import String
 
 
 class TestSubscribe(unittest.TestCase):
@@ -37,8 +38,12 @@ class TestSubscribe(unittest.TestCase):
         pass
 
     def test_update_params(self):
-        """Adds a bunch of random clients to the subscription and sees whether
-        the correct parameters are chosen as the min"""
+        """
+        Test the update_params method of the Subscription class.
+
+        Adds a bunch of random clients to the subscription and sees whether
+        the correct parameters are chosen as the min.
+        """
         client_id = "client_test_update_params"
         topic = "/test_update_params"
         msg_type = "std_msgs/String"
@@ -63,7 +68,7 @@ class TestSubscribe(unittest.TestCase):
             self.assertEqual(subscription.fragment_size, min_frag_size)
             self.assertEqual(subscription.compression, "none")
 
-            list(subscription.clients.values())[0]["compression"] = "png"
+            next(iter(subscription.clients.values()))["compression"] = "png"
 
             subscription.update_params()
 
@@ -112,7 +117,7 @@ class TestSubscribe(unittest.TestCase):
 
         received = {"msg": None}
 
-        def send(outgoing, **kwargs):
+        def send(outgoing, cid=None, compression="none"):  # noqa: ARG001
             received["msg"] = outgoing
 
         proto.send = send

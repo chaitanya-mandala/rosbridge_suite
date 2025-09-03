@@ -4,7 +4,6 @@ from rosbridge_library.capability import Capability
 
 
 class UnadvertiseService(Capability):
-
     # unadvertise_service_msg_fields = [(True, "service", (str, unicode))]
 
     services_glob = None
@@ -48,7 +47,7 @@ class UnadvertiseService(Capability):
             )
 
         # unregister service in ROS
-        if service_name in self.protocol.external_service_list.keys():
+        if service_name in self.protocol.external_service_list:
             self.protocol.external_service_list[service_name].graceful_shutdown()
             self.protocol.external_service_list[service_name].service_handle.destroy()
             del self.protocol.external_service_list[service_name]

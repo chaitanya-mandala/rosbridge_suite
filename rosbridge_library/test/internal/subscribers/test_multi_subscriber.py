@@ -7,10 +7,11 @@ import rclpy
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
+from std_msgs.msg import Int32, String
+
 from rosbridge_library.internal.subscribers import MultiSubscriber
 from rosbridge_library.internal.topics import TypeConflictException
 from rosbridge_library.util.ros import is_topic_subscribed
-from std_msgs.msg import Int32, String
 
 
 class TestMultiSubscriber(unittest.TestCase):
@@ -32,25 +33,28 @@ class TestMultiSubscriber(unittest.TestCase):
         rclpy.shutdown()
 
     def test_register_multisubscriber(self):
-        """Register a subscriber on a clean topic with a good msg type"""
+        """Register a subscriber on a clean topic with a good msg type."""
         topic = "/test_register_multisubscriber"
         msg_type = "std_msgs/String"
 
         self.assertFalse(is_topic_subscribed(self.node, topic))
-        MultiSubscriber(topic, self.client_id, lambda *args: None, self.node, msg_type=msg_type)
+        MultiSubscriber(topic, self.client_id, lambda *_args: None, self.node, msg_type=msg_type)
+        time.sleep(0.05)
         self.assertTrue(is_topic_subscribed(self.node, topic))
 
     def test_unregister_multisubscriber(self):
-        """Register and unregister a subscriber on a clean topic with a good msg type"""
+        """Register and unregister a subscriber on a clean topic with a good msg type."""
         topic = "/test_unregister_multisubscriber"
         msg_type = "std_msgs/String"
 
         self.assertFalse(is_topic_subscribed(self.node, topic))
         multi = MultiSubscriber(
-            topic, self.client_id, lambda *args: None, self.node, msg_type=msg_type
+            topic, self.client_id, lambda *_args: None, self.node, msg_type=msg_type
         )
+        time.sleep(0.05)
         self.assertTrue(is_topic_subscribed(self.node, topic))
         multi.unregister()
+        time.sleep(0.05)
         self.assertFalse(is_topic_subscribed(self.node, topic))
 
     def test_verify_type(self):
@@ -70,7 +74,9 @@ class TestMultiSubscriber(unittest.TestCase):
             "sensor_msgs/PointCloud2",
         ]
 
-        s = MultiSubscriber(topic, self.client_id, lambda *args: None, self.node, msg_type=msg_type)
+        s = MultiSubscriber(
+            topic, self.client_id, lambda *_args: None, self.node, msg_type=msg_type
+        )
         s.verify_type(msg_type)
         for othertype in othertypes:
             self.assertRaises(TypeConflictException, s.verify_type, othertype)
@@ -81,8 +87,9 @@ class TestMultiSubscriber(unittest.TestCase):
 
         self.assertFalse(is_topic_subscribed(self.node, topic))
         multi = MultiSubscriber(
-            topic, self.client_id, lambda *args: None, self.node, msg_type=msg_type
+            topic, self.client_id, lambda *_args: None, self.node, msg_type=msg_type
         )
+        time.sleep(0.05)
         self.assertTrue(is_topic_subscribed(self.node, topic))
         self.assertEqual(len(multi.new_subscriptions), 0)
 
@@ -159,7 +166,7 @@ class TestMultiSubscriber(unittest.TestCase):
         pub = self.node.create_publisher(String, topic, publisher_qos)
         received = {"count": 0}
 
-        def cb(msg):
+        def cb(_msg):
             received["count"] = received["count"] + 1
 
         multi = MultiSubscriber(topic, self.client_id, cb, self.node, msg_type=msg_type)

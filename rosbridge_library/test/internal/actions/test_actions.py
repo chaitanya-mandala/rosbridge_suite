@@ -9,9 +9,9 @@ from example_interfaces.action import Fibonacci
 from rclpy.action import ActionClient, ActionServer
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
-from rosbridge_library.internal import actions
+
+from rosbridge_library.internal import actions, ros_loader
 from rosbridge_library.internal import message_conversion as c
-from rosbridge_library.internal import ros_loader
 from rosbridge_library.internal.message_conversion import FieldTypeMismatchException
 
 
@@ -96,9 +96,11 @@ class TestActions(unittest.TestCase):
         if type(msg1) in c.list_types:
             for x, y in zip(msg1, msg2):
                 self.msgs_equal(x, y)
-        elif type(msg1) in c.primitive_types or type(msg1) is str:
-            self.assertEqual(msg1, msg2)
-        elif np.issubdtype(type(msg1), np.number):
+        elif (
+            type(msg1) in c.primitive_types
+            or type(msg1) is str
+            or np.issubdtype(type(msg1), np.number)
+        ):
             self.assertEqual(msg1, msg2)
         else:
             for x in msg1:
@@ -114,18 +116,17 @@ class TestActions(unittest.TestCase):
             cls = ros_loader.get_action_class("rosbridge_test_msgs/" + action_type)
             for args in [[], {}, None]:
                 # Should throw no exceptions
-                actions.args_to_action_goal_instance("", cls.Goal(), args)
+                actions.args_to_action_goal_instance(cls.Goal(), args)
 
         # Test actions with data message
         for action_type in ["TestGoalOnly", "TestGoalAndResult", "TestGoalFeedbackAndResult"]:
             cls = ros_loader.get_action_class("rosbridge_test_msgs/" + action_type)
             for args in [[3], {"data": 3}]:
                 # Should throw no exceptions
-                actions.args_to_action_goal_instance("", cls.Goal(), args)
+                actions.args_to_action_goal_instance(cls.Goal(), args)
             self.assertRaises(
                 FieldTypeMismatchException,
                 actions.args_to_action_goal_instance,
-                "",
                 cls.Goal(),
                 ["hello"],
             )
@@ -137,10 +138,10 @@ class TestActions(unittest.TestCase):
             {"int_value": 3, "float_value": 3.5, "string": "hello", "bool_value": False},
         ]:
             # Should throw no exceptions
-            actions.args_to_action_goal_instance("", cls.Goal(), args)
+            actions.args_to_action_goal_instance(cls.Goal(), args)
 
     def test_send_action_goal(self):
-        """Test a simple action call"""
+        """Test a simple action call."""
         ActionTester(self.executor)
         self.result = None
 
@@ -178,7 +179,7 @@ class TestActions(unittest.TestCase):
         self.assertEqual(list(json_ret["result"]["sequence"]), [0, 1, 1, 2, 3, 5])
 
     def test_action_client_handler(self):
-        """Same as test_service_call but via the thread caller"""
+        """Test service_call via the thread caller."""
         ActionTester(self.executor)
 
         received = {"json": None}
@@ -187,7 +188,7 @@ class TestActions(unittest.TestCase):
             received["json"] = json
 
         def error():
-            raise Exception()
+            raise Exception
 
         # Now, call using the services
         order = 5

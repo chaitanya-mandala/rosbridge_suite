@@ -7,13 +7,14 @@ import rclpy
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
+from std_msgs.msg import String
+
 from rosbridge_library.internal.subscribers import manager
 from rosbridge_library.internal.topics import (
     TopicNotEstablishedException,
     TypeConflictException,
 )
 from rosbridge_library.util.ros import is_topic_subscribed
-from std_msgs.msg import String
 
 
 class TestSubscriberManager(unittest.TestCase):
@@ -33,7 +34,7 @@ class TestSubscriberManager(unittest.TestCase):
         rclpy.shutdown()
 
     def test_subscribe(self):
-        """Register a publisher on a clean topic with a good msg type"""
+        """Register a publisher on a clean topic with a good msg type."""
         topic = "/test_subscribe"
         msg_type = "std_msgs/String"
         client = "client_test_subscribe"
@@ -41,10 +42,12 @@ class TestSubscriberManager(unittest.TestCase):
         self.assertFalse(topic in manager._subscribers)
         self.assertFalse(is_topic_subscribed(self.node, topic))
         manager.subscribe(client, topic, None, self.node, msg_type)
+        time.sleep(0.05)
         self.assertTrue(topic in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic))
 
         manager.unsubscribe(client, topic)
+        time.sleep(0.05)
         self.assertFalse(topic in manager._subscribers)
         self.assertFalse(is_topic_subscribed(self.node, topic))
 
@@ -57,18 +60,22 @@ class TestSubscriberManager(unittest.TestCase):
         self.assertFalse(topic in manager._subscribers)
         self.assertFalse(is_topic_subscribed(self.node, topic))
         manager.subscribe(client1, topic, None, self.node, msg_type)
+        time.sleep(0.05)
         self.assertTrue(topic in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic))
 
         manager.subscribe(client2, topic, None, self.node, msg_type)
+        time.sleep(0.05)
         self.assertTrue(topic in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic))
 
         manager.unsubscribe(client1, topic)
+        time.sleep(0.05)
         self.assertTrue(topic in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic))
 
         manager.unsubscribe(client2, topic)
+        time.sleep(0.05)
         self.assertFalse(topic in manager._subscribers)
         self.assertFalse(is_topic_subscribed(self.node, topic))
 
@@ -81,6 +88,7 @@ class TestSubscriberManager(unittest.TestCase):
         self.assertFalse(topic in manager._subscribers)
         self.assertFalse(is_topic_subscribed(self.node, topic))
         manager.subscribe(client, topic, None, self.node, msg_type)
+        time.sleep(0.05)
         self.assertTrue(topic in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic))
 
@@ -106,24 +114,28 @@ class TestSubscriberManager(unittest.TestCase):
         self.assertFalse(is_topic_subscribed(self.node, topic2))
 
         manager.subscribe(client, topic1, None, self.node, msg_type)
+        time.sleep(0.05)
         self.assertTrue(topic1 in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic1))
         self.assertFalse(topic2 in manager._subscribers)
         self.assertFalse(is_topic_subscribed(self.node, topic2))
 
         manager.subscribe(client, topic2, None, self.node, msg_type)
+        time.sleep(0.05)
         self.assertTrue(topic1 in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic1))
         self.assertTrue(topic2 in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic2))
 
         manager.unsubscribe(client, topic1)
+        time.sleep(0.05)
         self.assertFalse(topic1 in manager._subscribers)
         self.assertFalse(is_topic_subscribed(self.node, topic1))
         self.assertTrue(topic2 in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic2))
 
         manager.unsubscribe(client, topic2)
+        time.sleep(0.05)
         self.assertFalse(topic1 in manager._subscribers)
         self.assertFalse(is_topic_subscribed(self.node, topic1))
         self.assertFalse(topic2 in manager._subscribers)
@@ -149,16 +161,18 @@ class TestSubscriberManager(unittest.TestCase):
             depth=10,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
         )
-        self.node.create_subscription(String, topic, lambda *args: None, subscriber_qos)
+        self.node.create_subscription(String, topic, lambda *_args: None, subscriber_qos)
 
         self.assertTrue(is_topic_subscribed(self.node, topic))
         self.assertFalse(topic in manager._subscribers)
 
         manager.subscribe(client, topic, None, self.node)
+        time.sleep(0.05)
         self.assertTrue(topic in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic))
 
         manager.unsubscribe(client, topic)
+        time.sleep(0.05)
         self.assertFalse(topic in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic))
 
@@ -172,18 +186,22 @@ class TestSubscriberManager(unittest.TestCase):
         self.assertFalse(is_topic_subscribed(self.node, topic))
 
         manager.subscribe(client1, topic, None, self.node, msg_type)
+        time.sleep(0.05)
         self.assertTrue(topic in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic))
 
         manager.subscribe(client2, topic, None, self.node)
+        time.sleep(0.05)
         self.assertTrue(topic in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic))
 
         manager.unsubscribe(client1, topic)
+        time.sleep(0.05)
         self.assertTrue(topic in manager._subscribers)
         self.assertTrue(is_topic_subscribed(self.node, topic))
 
         manager.unsubscribe(client2, topic)
+        time.sleep(0.05)
         self.assertFalse(topic in manager._subscribers)
         self.assertFalse(is_topic_subscribed(self.node, topic))
 

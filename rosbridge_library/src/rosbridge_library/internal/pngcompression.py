@@ -38,7 +38,11 @@ from PIL import Image
 
 
 def encode(string):
-    """PNG-compress the string in a square RGB image padded with '\n', return the b64 encoded bytes"""
+    r"""
+    PNG-compress the string in a square RGB image padded with '\n'.
+
+    :return: The b64 encoded bytes.
+    """
     string_bytes = string.encode("utf-8")
     length = len(string_bytes)
     width = floor(sqrt(length / 3.0))
@@ -53,10 +57,9 @@ def encode(string):
 
 
 def decode(string):
-    """b64 decode the string, then PNG-decompress and remove the '\n' padding"""
+    r"""b64 decode the string, then PNG-decompress and remove the '\n' padding."""
     decoded = standard_b64decode(string)
     buff = BytesIO(decoded)
     i = Image.open(buff, formats=("png",)).convert("RGB")
     dec_str = i.tobytes().decode("utf-8")
-    dec_str = dec_str.replace("\n", "")  # Remove padding from encoding
-    return dec_str
+    return dec_str.replace("\n", "")  # Remove padding from encoding
