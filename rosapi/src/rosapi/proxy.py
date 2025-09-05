@@ -301,12 +301,108 @@ def get_action_type(action_name, include_hidden=False):
     Return the type of the specified ROS action.
 
     If the action does not exist, an empty string is returned.
-    """
-    names_and_types = get_action_names_and_types(
-        node=_node, include_hidden_actions=include_hidden)
 
-    for name, types in names_and_types:
-        if name == action_name and types:
-            return types[0]
+    Note: This function uses a topic-based approach since the ROS2 Jazzy action API is broken.
+    It gets action types by examining action-related topics.
+    """
+    # ROS2 Jazzy action API is broken, use topic-based workaround directly
+
+    try:
+        # Get all topics with types
+        topics = get_topic_names_and_types(
+            node=_node, include_hidden_topics=include_hidden)
+        # Look for action topics that match the action name
+        action_topics = []
+        for topic_name, topic_types in topics:
+            if '/_action/' in topic_name:
+                # Extract action name from topic like /namespace/_action/feedback
+                parts = topic_name.split('/_action/')
+                if len(parts) > 1:
+                    topic_action_name = parts[0]
+                    if topic_action_name == action_name or topic_action_name == f"/{action_name}":
+                        action_topics.append((topic_name, topic_types))
+
+        # If we found action topics, try to determine the action type
+        if action_topics:
+            # Look for goal topic first (preferred)
+            for topic_name, topic_types in action_topics:
+                if topic_name.endswith('/_action/goal') and topic_types:
+                    # Extract action type from goal topic type
+                    goal_type = topic_types[0]
+                    if goal_type.endswith('_Goal'):
+                        # Convert goal type to action type
+                        # Remove '_Goal' suffix
+                        action_type = goal_type[:-5]
+                        return action_type
+                    elif 'action' in goal_type.lower():
+                        # Try to extract action type from the goal type
+                        parts = goal_type.split('/')
+                        if len(parts) >= 2:
+                            package = parts[0]
+                            action_name_part = parts[1].replace('_Goal', '')
+                            action_type = f"{package}/{action_name_part}"
+                            return action_type
+
+            # If no goal topic found, try feedback topic
+            for topic_name, topic_types in action_topics:
+                if topic_name.endswith('/_action/feedback') and topic_types:
+                    # Extract action type from feedback topic type
+                    feedback_type = topic_types[0]
+                    if feedback_type.endswith('_FeedbackMessage'):
+                        # Convert feedback type to action type
+                        # Remove '_FeedbackMessage' suffix
+                        action_type = feedback_type[:-16]
+                        return action_type
+                    elif 'action' in feedback_type.lower():
+                        # Try to extract action type from the feedback type
+                        parts = feedback_type.split('/')
+                        if len(parts) >= 2:
+                            package = parts[0]
+                            action_name_part = parts[1].replace(
+                                '_FeedbackMessage', '')
+                            action_type = f"{package}/{action_name_part}"
+                            return action_type
+
+            # If no goal or feedback topic found, try status topic
+            for topic_name, topic_types in action_topics:
+                if topic_name.endswith('/_action/status') and topic_types:
+                    # Extract action type from status topic type
+                    status_type = topic_types[0]
+                    if status_type.endswith('_StatusMessage'):
+                        # Convert status type to action type
+                        # Remove '_StatusMessage' suffix
+                        action_type = status_type[:-14]
+                        return action_type
+                    elif 'action' in status_type.lower():
+                        # Try to extract action type from the status type
+                        parts = status_type.split('/')
+                        if len(parts) >= 2:
+                            package = parts[0]
+                            action_name_part = parts[1].replace(
+                                '_StatusMessage', '')
+                            action_type = f"{package}/{action_name_part}"
+                            return action_type
+
+            # If no specific action topic found, try to infer from any action topics
+            for topic_name, topic_types in action_topics:
+                if topic_types:
+                    topic_type = topic_types[0]
+                    # Look for action-related message types
+                    if 'action' in topic_type.lower():
+                        # Try to extract action type from any action message
+                        if topic_type.endswith('_FeedbackMessage'):
+                            action_type = topic_type[:-16]
+                            return action_type
+                        elif topic_type.endswith('_StatusMessage'):
+                            action_type = topic_type[:-14]
+                            return action_type
+                        elif topic_type.endswith('_Goal'):
+                            action_type = topic_type[:-5]
+                            return action_type
+                        elif topic_type.endswith('_Result'):
+                            action_type = topic_type[:-7]
+                            return action_type
+    except Exception as workaround_error:
+        print(f"Workaround failed: {workaround_error}")
 
     return ""

@@ -416,7 +416,8 @@ class Rosapi(Node):
 
         Called by the rosapi/ActionType service.
         """
-        response.type = proxy.get_action_type(request.action)
+        response.type = proxy.get_action_type(
+            request.action, include_hidden=True)
         return response
 
     async def set_param(self, request, response):
