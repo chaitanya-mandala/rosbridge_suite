@@ -222,7 +222,17 @@ class Subscribe(Capability):
         (False, "queue_length", int),
         (False, "compression", str),
     )
-    unsubscribe_msg_fields = (True, "topic", str)
+    # Must be a tuple of (mandatory, fieldname, fieldtype) tuples, same as
+    # subscribe_msg_fields above and every other *_msg_fields in this
+    # package (see e.g. publish_msg_fields, unadvertise_msg_fields) — this
+    # was missing the outer nesting, so basic_type_check's
+    # `for mandatory, fieldname, fieldtypes in types_info` unpacked this
+    # tuple's own three elements individually instead of iterating one
+    # field-spec: the first element is the bare bool True, which is not
+    # iterable, raising "cannot unpack non-iterable bool object" on every
+    # single unsubscribe call, unconditionally. Confirmed live: this fired
+    # for every client unsubscribing from any topic, every time.
+    unsubscribe_msg_fields = ((True, "topic", str),)
 
     topics_glob = None
 
